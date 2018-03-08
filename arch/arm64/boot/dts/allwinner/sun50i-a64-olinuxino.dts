@@ -58,9 +58,33 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	regulator_1v8: regulator0 {
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-1.8V";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
 	wifi_pwrseq: wifi_pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&r_pio 0 2 GPIO_ACTIVE_LOW>; /* PL2 */
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		/*
+		pinctrl-names = "default";
+		pinctrl-0 = <&test_leds>;
+		*/
+
+		test {
+			gpios = <&pio 2 4 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			linux,default-trigger = "timer";
+		};
+
 	};
 };
 
@@ -89,6 +113,37 @@
 		interrupt-parent = <&r_pio>;
 		interrupts = <0 3 IRQ_TYPE_LEVEL_LOW>; /* PL3 */
 		interrupt-names = "host-wake";
+	};
+};
+
+&mmc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mmc2_pins>;
+	vmmc-supply = <&reg_eldo1>;
+	vqmmc-supply = <&reg_eldo1>;
+	max-frequency = <100000000>;
+	bus-width = <8>;
+	mmc-hs400-1_8v;
+	non-removable;
+	status = "okay";
+	sunxi,sample_delay = <1>;
+	sunxi,strobe_delay = <10>;
+
+/*
+	emmc: emmc@0 {
+		reg = <0>;
+		compatible = "mmc-card";
+		broken-hpi;
+	};
+	*/
+
+};
+
+&pio {
+	test_leds: led_pins@0 {
+		pins = "PC4";
+		function = "gpio_out";
+		drive-strength = <40>;
 	};
 };
 

@@ -1144,6 +1144,7 @@ static int mmc_select_hs400(struct mmc_card *card)
 	unsigned int max_dtr;
 	int err = 0;
 	u8 val;
+	pr_err("%s: %s\n", mmc_hostname(card->host), __func__);
 
 	/*
 	 * HS400 mode requires 8-bit bus width
@@ -1217,6 +1218,7 @@ out_err:
 
 int mmc_hs200_to_hs400(struct mmc_card *card)
 {
+	pr_err("%s: %s\n", mmc_hostname(card->host), __func__);
 	return mmc_select_hs400(card);
 }
 
@@ -1226,6 +1228,8 @@ int mmc_hs400_to_hs200(struct mmc_card *card)
 	unsigned int max_dtr;
 	int err;
 	u8 val;
+
+	pr_err("%s: %s\n", mmc_hostname(card->host), __func__);
 
 	/* Reduce frequency to HS */
 	max_dtr = card->ext_csd.hs_max_dtr;

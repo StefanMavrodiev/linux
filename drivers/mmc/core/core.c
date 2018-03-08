@@ -1597,9 +1597,15 @@ int mmc_select_drive_strength(struct mmc_card *card, unsigned int max_dtr,
 	int host_drv_type = SD_DRIVER_TYPE_B;
 
 	*drv_type = 0;
+        pr_debug("%s: %s(): max_dtr: %d, card_drv_type: %d, host_drv_type: %d\n",
+                mmc_hostname(host), __func__, max_dtr, card_drv_type, host_drv_type);
 
-	if (!host->ops->select_drive_strength)
+
+	if (!host->ops->select_drive_strength) {
+	        pr_debug("%s: %s(): host->ops->select_drive_strength is NULL!\n ",
+			mmc_hostname(host), __func__);
 		return 0;
+	}
 
 	/* Use SD definition of driver strength for hosts */
 	if (host->caps & MMC_CAP_DRIVER_TYPE_A)
