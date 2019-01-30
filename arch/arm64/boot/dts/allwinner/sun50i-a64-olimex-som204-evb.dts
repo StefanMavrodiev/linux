@@ -222,6 +222,12 @@
 	status = "okay";
 };
 
+&axp_led {
+	label = "axp20x:yellow:chgled";
+	x-powers,charger-mode = "mode-b";
+	status = "okay";
+};
+
 &battery_power_supply {
 	status = "okay";
 };
