@@ -83,6 +83,11 @@
 		};
 	};
 
+	wifi_pwrseq: wifi-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		reset-gpios = <&pio 6 9 GPIO_ACTIVE_LOW>;	/* PG9 */
+	};
+
 	spi_gpio: spi-gpio {
 		compatible = "spi-gpio";
 		#address-cells = <1>;
@@ -105,6 +110,19 @@
 			spi-max-frequency = <1000000>;
 		};
 	};
+};
+
+&codec {
+	status = "okay";
+};
+
+&codec_analog {
+	hpvcc-supply = <&reg_eldo1>;
+	status = "okay";
+};
+
+&dai {
+	status = "okay";
 };
 
 &de {
@@ -153,9 +171,9 @@
 		reg = <0x50>;
 	};
 
-	atecc508a@c0 {
+	atecc508a@60 {
 		compatible = "atmel,atecc508a";
-		reg = <0xC0>;
+		reg = <0x60>;
 	};
 };
 
@@ -185,6 +203,21 @@
 	status = "okay";
 };
 
+&mmc1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mmc1_pins>;
+	vmmc-supply = <&reg_aldo2>;
+	vqmmc-supply = <&reg_dldo4>;
+	mmc-pwrseq = <&wifi_pwrseq>;
+	bus-width = <4>;
+	non-removable;
+	status = "okay";
+
+	rtl8723bs: sdio_wifi@1 {
+		reg = <1>;
+	};
+};
+
 &mmc2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mmc2_pins>;
@@ -212,7 +245,7 @@
 		reg = <0x3a3>;
 		interrupt-parent = <&r_intc>;
 		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
-		x-powers,drive-vbus-en;	/* set N_VBUSEN as output pin */
+		x-powers,drive-vbus-en;
 	};
 };
 
@@ -224,7 +257,7 @@
 
 &axp_led {
 	label = "axp20x:yellow:chgled";
-	x-powers,charger-mode = "mode-b";
+	default-state = "on";
 	status = "okay";
 };
 
@@ -349,6 +382,28 @@
 	vcc-hdmi-supply = <&reg_dldo1>;
 };
 
+&sound {
+	simple-audio-card,aux-devs = <&codec_analog>;
+	simple-audio-card,widgets = "Microphone", "Microphone Jack Left",
+				    "Microphone", "Microphone Jack Right",
+				    "Headphone", "Headphone Jack";
+	simple-audio-card,routing =
+			"Left DAC", "AIF1 Slot 0 Left",
+			"Right DAC", "AIF1 Slot 0 Right",
+			"Headphone Jack", "HP",
+			"AIF1 Slot 0 Left ADC", "Left ADC",
+			"AIF1 Slot 0 Right ADC", "Right ADC",
+			"Microphone Jack Left", "MBIAS",
+			"MIC1", "Microphone Jack Left",
+			"Microphone Jack Left", "HBIAS",
+			"MIC2", "Microphone Jack Right";
+	status = "okay";
+};
+
+&spdif {
+	status = "disabled";
+};
+
 &spi0 {
 	status = "okat";
 
@@ -367,8 +422,14 @@
 	status = "okay";
 };
 
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
+	status = "enabled";
+};
+
 &usb_otg {
-	dr_mode = "otg";
+	dr_mode = "host";
 	status = "okay";
 };
 
