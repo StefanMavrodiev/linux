@@ -52,6 +52,7 @@
 
 	aliases {
 		ethernet0 = &emac;
+		ethernet1 = &wifi_pwrseq;
 		i2c0 = &i2c0;
 		i2c1 = &i2c1;
 		i2c2 = &i2c2;
@@ -60,6 +61,26 @@
 		serial0 = &uart0;
 		spi0 = &spi0;
 		spi1 = &spi_gpio;
+	};
+
+	bt-sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-inversion = <1>;
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "RTL8723BS";
+		simple-audio-card,cpu {
+			sound-dai = <&i2s1>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&bt_sco>;
+		};
+	};
+
+	bt_sco: bt-sco {
+		compatible = "linux,bt-sco";
+		#sound-dai-cells = <0>;
+		status = "okay";
 	};
 
 	chosen {
@@ -164,7 +185,7 @@
 
 &i2c0 {
 	status = "okay";
-	clock-frequency = <400000>;
+	clock-frequency = <100000>;
 
 	eeprom@50 {
 		compatible = "atmel,24c16";
@@ -182,6 +203,10 @@
 };
 
 &i2c2 {
+	status = "okay";
+};
+
+&i2s1 {
 	status = "okay";
 };
 
@@ -212,6 +237,7 @@
 	bus-width = <4>;
 	non-removable;
 	status = "okay";
+	keep-power-in-suspend;
 
 	rtl8723bs: sdio_wifi@1 {
 		reg = <1>;
@@ -226,7 +252,7 @@
 	bus-width = <8>;
 	non-removable;
 	cap-mmc-hw-reset;
-	status = "okay";
+	status = "disabled";
 };
 
 &ohci0 {
@@ -235,6 +261,14 @@
 
 &ohci1 {
 	status = "okay";
+};
+
+&pio {
+	uart1_rts_pins: uart1_rts_pins {
+		pins = "PG9";
+		function = "uart1";
+	};
+
 };
 
 &r_rsb {
@@ -257,6 +291,7 @@
 
 &axp_led {
 	label = "axp20x:yellow:chgled";
+	linux,default-trigger = "heartbeat";
 	default-state = "on";
 	status = "okay";
 };
@@ -424,8 +459,8 @@
 
 &uart1 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
-	status = "enabled";
+	pinctrl-0 = <&uart1_pins>, <&uart1_rts_pins>;
+	status = "okay";
 };
 
 &usb_otg {
