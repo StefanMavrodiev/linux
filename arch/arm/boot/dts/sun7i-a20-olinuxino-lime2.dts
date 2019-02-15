@@ -200,6 +200,12 @@
 
 #include "axp209.dtsi"
 
+&axp_led {
+	label = "a20-olinuxino-lime2:yellow:chgled";
+	status = "okay";
+	x-powers,charger-mode = <0>;
+};
+
 &reg_dcdc2 {
 	regulator-always-on;
 	regulator-min-microvolt = <1000000>;
