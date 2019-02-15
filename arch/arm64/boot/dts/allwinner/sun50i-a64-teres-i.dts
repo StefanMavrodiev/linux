@@ -145,8 +145,15 @@
 
 #include "axp803.dtsi"
 
+<<<<<<< HEAD
 &ac_power_supply {
 	status = "okay";
+};
+
+&axp_led {
+	label = "teres-i:yellow:chgled";
+	status = "okay";
+	x-powers,charger-mode = <0>;
 };
 
 &battery_power_supply {

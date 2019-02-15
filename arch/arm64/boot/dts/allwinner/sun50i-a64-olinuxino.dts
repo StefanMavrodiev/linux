@@ -181,6 +181,12 @@
 	status = "okay";
 };
 
+&axp_led {
+	label = "a64-olinuxino:yellow:chgled";
+	status = "okay";
+	x-powers,charger-mode = <0>;
+};
+
 &battery_power_supply {
 	status = "okay";
 };
