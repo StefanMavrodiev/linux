@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0+
-//
-// Copyright 2019 Stefan Mavrodiev <stefan@olimex.com>
+/*
+ * Copyright (C) 2019 Olimex Ltd.
+ *   Author: Stefan Mavrodiev <stefan@olimex.com>
+ */
 
+#define DEBUG
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/leds.h>
@@ -24,6 +27,9 @@
 #define AXP20X_CHGLED_CTRL_MANUAL		0
 #define AXP20X_CHGLED_CTRL_CHARGER		1
 #define AXP20X_CHGLED_CTRL(_ctrl)		(_ctrl << 3)
+
+#define AXP20X_CHGLED_CTRL_POL_NORMAL		0
+#define AXP20X_CHGLED_CTRLL_POL_INVERTED	1
 
 #define AXP20X_CHGLED_MODE_REG		AXP20X_CHRG_CTRL2
 #define AXP20X_CHGLED_MODE_MASK			BIT(4)
@@ -69,81 +75,18 @@ out:
 	return ret;
 }
 
-static ssize_t control_show(struct device *dev, struct device_attribute *attr,
-			    char *buf)
+int axp20x_led_pattern_set(struct led_classdev *cdev,
+			   struct led_pattern *pattern, u32 len, int repeat)
 {
-	struct led_classdev *cdev = dev_get_drvdata(dev);
-	struct axp20x_led *priv = to_axp20x_led(cdev);
-
-	return sprintf(buf, "%u\n", priv->ctrl);
+	dev_dbg(cdev->dev, "%s\n", __func__);
+	return 0;
 }
 
-static ssize_t control_store(struct device *dev, struct device_attribute *attr,
-			     const char *buf, size_t size)
+int axp20x_led_pattern_clear(struct led_classdev *cdev)
 {
-	struct led_classdev *cdev = dev_get_drvdata(dev);
-	struct axp20x_led *priv = to_axp20x_led(cdev);
-	unsigned long val;
-	int ret;
-
-	ret = kstrtoul(buf, 0, &val);
-	if (ret)
-		return ret;
-
-	/**
-	 * Supported values are:
-	 *   - 0 : Manual control
-	 *   - 1 : Charger control
-	 */
-	if (val > 1)
-		return -EINVAL;
-
-	priv->ctrl = val;
-
-	return axp20x_led_setup(priv) ? : size;
+	dev_dbg(cdev->dev, "%s\n", __func__);
+	return 0;
 }
-static DEVICE_ATTR_RW(control);
-
-static ssize_t mode_show(struct device *dev, struct device_attribute *attr,
-			 char *buf)
-{
-	struct led_classdev *cdev = dev_get_drvdata(dev);
-	struct axp20x_led *priv = to_axp20x_led(cdev);
-
-	return sprintf(buf, "%u\n", priv->mode);
-}
-
-static ssize_t mode_store(struct device *dev, struct device_attribute *attr,
-			  const char *buf, size_t size)
-{
-	struct led_classdev *cdev = dev_get_drvdata(dev);
-	struct axp20x_led *priv = to_axp20x_led(cdev);
-	unsigned long val;
-	int ret;
-
-	ret = kstrtoul(buf, 0, &val);
-	if (ret)
-		return ret;
-	/**
-	 * Supported values are:
-	 *   - 0 : Mode A
-	 *   - 1 : Mode B
-	 */
-	if (val > 1)
-		return -EINVAL;
-
-	priv->mode = val;
-
-	return axp20x_led_setup(priv) ? : size;
-}
-static DEVICE_ATTR_RW(mode);
-
-static struct attribute *axp20x_led_attrs[] = {
-	&dev_attr_control.attr,
-	&dev_attr_mode.attr,
-	NULL,
-};
-ATTRIBUTE_GROUPS(axp20x_led);
 
 enum led_brightness axp20x_led_brightness_get(struct led_classdev *cdev)
 {
@@ -191,16 +134,14 @@ static int axp20x_led_parse_dt(struct axp20x_led *priv, struct device_node *np)
 		snprintf(priv->name, sizeof(priv->name), "axp20x:%s", str);
 	priv->cdev.name = priv->name;
 
-	priv->cdev.default_trigger = of_get_property(np,
-						     "linux,default-trigger",
-						     NULL);
-
-	if (!of_property_read_u8(np, "x-powers,charger-mode", &value)) {
-		priv->ctrl = AXP20X_CHGLED_CTRL_CHARGER;
-		priv->mode = (value < 2) ? value : 0;
-	} else {
-		priv->ctrl = AXP20X_CHGLED_CTRL_MANUAL;
-	}
+	/**
+	 * If there is no default-trigger property, use pattern as default,
+	 * which will enable the hardware control.
+	 */
+	str = of_get_property(np, "linux,default-trigger", NULL);
+	snprintf(priv->cdev.default_trigger,
+		 sizeof(priv->cdev.default_trigger),
+		 "%s", str, "pattern");
 
 	str = of_get_property(np, "default-state", NULL);
 	if (str) {
@@ -222,18 +163,30 @@ static int axp20x_led_parse_dt(struct axp20x_led *priv, struct device_node *np)
 }
 
 static const struct of_device_id axp20x_led_of_match[] = {
-	{ .compatible = "x-powers,axp20x-led" },
-	{}
+	{
+		.compatible = "x-powers,axp209-led",
+		.data = (void *)AXP20X_CHGLED_CTRL_POL_INVERTED,
+	},
+	{
+		.compatible = "x-powers,axp22x-led",
+		.data = (void *)AXP20X_CHGLED_CTRL_POL_NORMAL,
+	},
+	{ }
 };
 MODULE_DEVICE_TABLE(of, axp20x_led_of_match);
 
 static int axp20x_led_probe(struct platform_device *pdev)
 {
+	const struct of_device_id *match
 	struct axp20x_led *priv;
 	int ret;
 
 	if (!of_device_is_available(pdev->dev.of_node))
 		return -ENODEV;
+
+	match = of_match_device(axp20x_led_of_match, &pdev->dev);
+	if (!match || !match->data)
+		return -EINVAL;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(struct axp20x_led),
 			    GFP_KERNEL);
@@ -250,22 +203,15 @@ static int axp20x_led_probe(struct platform_device *pdev)
 
 	priv->cdev.brightness_set_blocking = axp20x_led_brightness_set_blocking;
 	priv->cdev.brightness_get = axp20x_led_brightness_get;
-	priv->cdev.groups = axp20x_led_groups;
+	priv->cdev.pattern_set = axp20x_led_pattern_set;
+	priv->cdev.pattern_clear = axp20x_led_pattern_clear;
+	priv->ctrl_inverted = (u8)match->data;
 
 	ret = axp20x_led_parse_dt(priv, pdev->dev.of_node);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Failed to set parameters\n");
-		return ret;
+		return err;
 	}
-
-	/**
-	 * For some reason in AXP209 the bit that controls CHGLED is with
-	 * inverted logic compared to all other PMICs.
-	 * If the PMIC is actually AXP209, set inverted flag and later use it
-	 * when configuring the LED.
-	 */
-	if (priv->axp20x->variant == AXP209_ID)
-		priv->ctrl_inverted = 1;
 
 	ret =  axp20x_led_setup(priv);
 	if (ret < 0) {
