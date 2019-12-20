@@ -19,6 +19,7 @@ if DRM_SUN4I
 config DRM_SUN4I_HDMI
        tristate "Allwinner A10 HDMI Controller Support"
        default DRM_SUN4I
+       select SND_PCM_ELD
        help
 	  Choose this option if you have an Allwinner SoC with an HDMI
 	  controller.
